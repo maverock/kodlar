@@ -1,5 +1,5 @@
 echo $1
-cikis="/home/"
+cikis="/home/birim/"
 dosya="${1%.*}"
 deneme=${1%%mkv}
 srt="$deneme""srt"
