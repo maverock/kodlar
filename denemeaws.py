@@ -4,9 +4,9 @@ import argparse
 import subprocess
 import json
 from pprint import pprint
-DnsName=[]
-IpAdress=[]
-
+DnsName=""
+IpAdress=""
+InstanceId=""
 #data = open('/home/birim/sonuc.txt')
 #data = json.loads(data.text)
 with open('./sonuc.txt') as data_file:    
@@ -18,9 +18,9 @@ with open('./sonuc.txt') as data_file:
 ################dosyadan kurulum datasini cek
 
 for instance in data['Instances']:
-    DnsName.append(instance["PrivateDnsName"])
-    IpAdress.append(instance["PrivateIpAddress"])
-
+    DnsName=instance["PrivateDnsName"]
+    IpAdress=instance["PrivateIpAddress"]
+    InstanceId=instance["InstanceId"]
 ############ etc altini oku
 
 with open('/etc/salt/master.d/groups.conf', 'r') as file:
@@ -33,10 +33,16 @@ for x in range(len(data)):
 	for t in range(len(SplittedData)-1):
 	    ChangedLine=ChangedLine+SplittedData[t]+','
 	ChangedLine=ChangedLine+SplittedData[len(SplittedData)-1].replace("\'","").replace("\n","")
-	for item in IpAdress:
-	    ChangedLine=ChangedLine+","+item
+        ChangedLine=ChangedLine+","+IpAdress
 	ChangedLine=ChangedLine+"\'"+"\n"
 	data[x]=ChangedLine
 #print data
 with open('/etc/salt/master.d/groups.conf', 'w') as file:
     file.writelines( data )
+
+
+with open("/etc/salt/master.d/instanceid.conf", "a") as myfile:
+    newline=IpAdress+":"+InstanceId+"\n"
+    print newline
+    myfile.write(newline)
+
