@@ -5,11 +5,12 @@ import subprocess
 import json
 from pprint import pprint
 import requests
-
-def loadaverage():
+import datetime
+def LoadAverage():
     Deger=""
     Toplam=0
-    api_url = "https://graphite.8digits.com/render?width=400&from=-4minutes&until=now&height=250&hideLegend=true&tz=Europe%2FIstanbul&target=servers.ip-10-0-0-37.loadavg.01&target=servers.ip-10-0-0-29.loadavg.01&target=servers.ip-10-0-0-73.loadavg.01&target=servers.ip-10-0-0-36.loadavg.01&target=servers.ip-10-0-0-38.loadavg.01&target=servers.ip-10-0-0-34.loadavg.01&target=servers.ip-10-0-0-35.loadavg.01&title=Supervisor%20Load&_uniq=0.34630449186079204&format=json"
+    #api_url = "https://graphite.8digits.com/render?width=400&from=-4minutes&until=now&height=250&hideLegend=true&tz=Europe%2FIstanbul&target=servers.ip-10-0-0-37.loadavg.01&target=servers.ip-10-0-0-29.loadavg.01&target=servers.ip-10-0-0-73.loadavg.01&target=servers.ip-10-0-0-36.loadavg.01&target=servers.ip-10-0-0-38.loadavg.01&target=servers.ip-10-0-0-34.loadavg.01&target=servers.ip-10-0-0-35.loadavg.01&title=Supervisor%20Load&_uniq=0.34630449186079204&format=json"
+    api_url= Url_Builder()
     r = requests.get(api_url)
     data = json.loads(r.text)
     LineCount=len(data)
@@ -24,4 +25,28 @@ def loadaverage():
     #print "Ortalama=",Toplam/LineCount
     return Toplam/LineCount
 
-print loadaverage()
+def Url_Builder():
+    Ips=[]
+    Init="https://graphite.8digits.com/render?width=400&from=-4minutes&until=now&height=250&hideLegend=true&tz=Europe%2FIstanbul"
+    InitEnd="&title=Supervisor%20Load&_uniq=0.34630449186079204&format=json"
+    IpBegin="&target=servers.ip-"
+    IpEnd=".loadavg.01"
+    Url=""
+    with open('/etc/salt/master.d/instanceid.conf', 'r') as file:
+	data = file.readlines()
+    Url=Url+Init
+    for x in range(len(data)):
+	Url=Url+IpBegin+data[x].split(':')[0].replace(".","-")+IpEnd
+    Url=Url+InitEnd
+    return Url
+
+
+def Log( s ):
+    with open("/var/log/birim/controller.log", "a") as myfile:
+	newline=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))+"  "+str(s)+"\n"
+	myfile.write(newline)
+
+
+Gonder="Mevcut yuk="+str(LoadAverage())
+Log(Gonder)
+#print Url_Builder()
