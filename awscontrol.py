@@ -6,6 +6,11 @@ import json
 from pprint import pprint
 import requests
 import datetime
+Supervisor_Count=0
+System_Under_Stres=0
+Last_Supervisor_Add=0
+Wait_Until=0
+
 def LoadAverage():
     Deger=""
     Toplam=0
@@ -46,7 +51,23 @@ def Log( s ):
 	newline=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))+"  "+str(s)+"\n"
 	myfile.write(newline)
 
+def ReadConfig():
+    with open('/home/admin/birim_kodlar/runtime.conf', 'r') as file:
+	data = file.readlines()
+    global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until
+    Supervisor_Count=data[0].split("=")[1]
+    System_Under_Stres=data[1].split("=")[1]
+    Last_Supervisor_Add=data[2].split("=")[1]
+    Wait_Until=data[3].split("=")[1]
+
+def Control():
+    if Wait_until <> 0 and
+
+
+
 
 Gonder="Mevcut yuk="+str(LoadAverage())
 Log(Gonder)
+ReadConfig()
+print Supervisor_Count,Wait_Until
 #print Url_Builder()
