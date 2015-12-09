@@ -53,21 +53,41 @@ def Log( s ):
 
 def ReadConfig():
     with open('/home/admin/birim_kodlar/runtime.conf', 'r') as file:
-	data = file.readlines()
+	configdata = file.readlines()
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until
-    Supervisor_Count=data[0].split("=")[1]
-    System_Under_Stres=data[1].split("=")[1]
-    Last_Supervisor_Add=data[2].split("=")[1]
-    Wait_Until=data[3].split("=")[1]
+    Supervisor_Count=configdata[0].split("=")[1]
+    System_Under_Stres=configdata[1].split("=")[1]
+    Last_Supervisor_Add=configdata[2].split("=")[1]
+    Wait_Until=configdata[3].split("=")[1]
+
+def WriteConfig():
+    global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until
+    with open('/home/admin/birim_kodlar/runtime.conf', 'w') as file:
+        file.write("Supervisor_Count="+Supervisor_Count )
+	file.write("System_Under_Stres="+str(System_Under_Stres)+"\n")
+	file.write("Last_Supervisor_Add="+str(Last_Supervisor_Add))
+	file.write("Wait_Until="+Wait_Until)
+	file.close()
 
 def Control():
-    if Wait_until <> 0 and
+    if Wait_Until>datetime.datetime.now().strftime("%Y-%m-%d %H:%M"):
+	Log("Bekleme suresi etkin")
+	return
+    if LoadAverage() > 5 :
+	global System_Under_Stres,Last_Supervisor_Add
+	Last_Supervisor_Add=int(Last_Supervisor_Add)+1
+	System_Under_Stres=int(System_Under_Stres)+1
+	Log("Mevcut Yuk Sistem Icin Fazla= "+ str(LoadAverage()))
+	WriteConfig()
+    if LoadAverage() < 5 :
+	Log("Supervisor sayisi suan icin fazla ortalama yuk = "+str(LoadAverage()))
+    if LoadAverage() > 5 and LoadAverage() < 10 :
+	Log("Suan sistem sorunsuz calismakta= "+ str(LoadAverage()))
 
 
-
-
-Gonder="Mevcut yuk="+str(LoadAverage())
-Log(Gonder)
+#Gonder="Mevcut yuk="+str(LoadAverage())
+#Log(Gonder)
 ReadConfig()
-print Supervisor_Count,Wait_Until
+#print Supervisor_Count,Wait_Until
 #print Url_Builder()
+Control()
