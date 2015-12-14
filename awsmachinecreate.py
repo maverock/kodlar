@@ -45,3 +45,14 @@ with open("/etc/salt/master.d/instanceid.conf", "a") as myfile:
     newline=IpAdress+":"+InstanceId+"\n"
     myfile.write(newline)
 
+with open('/etc/salt/master.d/runtime.conf', 'r') as file:
+    data = file.readlines()
+
+
+
+
+
+with open('/etc/8digits/analytics.properties', 'r') as file:
+    data = file.readlines()
+
+

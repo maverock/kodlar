@@ -43,6 +43,87 @@ def Url_Builder():
     Url=Url+InitEnd
     return Url
 
+def AwsMachineCreate():
+    global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
+    DnsName=""
+    IpAdress=""
+    InstanceId=""
+    #with open('./sonuc.txt') as data_file:    
+    #    data = json.load(data_file)
+    data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
+    data = json.loads(data)
+    #
+    #cl = float(data['Instances']['State']['NetworkInterfaces']['PrivateIpAddresses']['PrivateIpAddress'])
+    #print cl
+    #pprint(data)
+    ################dosyadan kurulum datasini cek
+
+    for instance in data['Instances']:
+       DnsName=instance["PrivateDnsName"]
+        IpAdress=instance["PrivateIpAddress"]
+        InstanceId=instance["InstanceId"]
+    ############ etc altini oku
+
+    with open('/etc/salt/master.d/groups.conf', 'r') as file:
+        data = file.readlines()
+
+    for x in range(len(data)):
+        SplittedData=data[x].split(',')
+        ChangedLine=""
+        if SplittedData[0].strip()[:5]=="storm" or SplittedData[0].strip()[:5]=="super":
+	    for t in range(len(SplittedData)-1):
+	        ChangedLine=ChangedLine+SplittedData[t]+','
+	    ChangedLine=ChangedLine+SplittedData[len(SplittedData)-1].replace("\'","").replace("\n","")
+            ChangedLine=ChangedLine+","+IpAdress
+	    ChangedLine=ChangedLine+"\'"+"\n"
+	    data[x]=ChangedLine
+    #print data
+    with open('/etc/salt/master.d/groups.conf', 'w') as file:
+        file.writelines( data )
+    Supervisor_Count=Supervisor_Count+1
+    #Yeni worker sayilari ve dosyaya yazilmasi
+    Metric_Worker=round((Supervisor_Count*4)/3)
+    Auto_Worker=(Supervisor_Count*4)-Metric_Worker
+         ####Analytics 
+    with open('/etc/8digits/analytics.properties', 'r') as file:
+        data = file.readlines()
+    for x in range(len(data)):
+        SplittedData=data[x].split('=')
+        ChangedLine=""
+        if SplittedData[0].strip()=="PROD.worker.count":
+            ChangedLine="PROD.worker.count="+str(Auto_Worker)
+            data[x]=ChangedLine
+        if SplittedData[0].strip()=="PROD.supervisor.count":
+            ChangedLine="PROD.supervisor.count="+str(Supervisor_Count)
+            data[x]=ChangedLine
+
+    with open('/etc/8digits/analytics.properties', 'w') as file:
+        file.writelines( data )
+        ######Metric
+    with open('/etc/8digits/metrics.properties', 'r') as file:
+        data = file.readlines()
+    for x in range(len(data)):
+        SplittedData=data[x].split('=')
+        ChangedLine=""
+        if SplittedData[0].strip()=="PROD.worker.count":
+            ChangedLine="PROD.worker.count="+str(Metric_Worker)
+            data[x]=ChangedLine
+        if SplittedData[0].strip()=="PROD.supervisor.count":
+            ChangedLine="PROD.supervisor.count="+str(Supervisor_Count)
+            data[x]=ChangedLine
+
+    with open('/etc/8digits/metrics.properties', 'w') as file:
+        file.writelines( data )
+
+ 
+    #instanceid dosyasinin yazilmasi
+    with open("/etc/salt/master.d/instanceid.conf", "a") as myfile:
+        newline=IpAdress+":"+InstanceId+"\n"
+        myfile.write(newline)
+
+        
+    WriteConfig()
+
 
 def Log( s ):
     with open("/var/log/birim/controller.log", "a") as myfile:
@@ -77,7 +158,7 @@ def Control():
 #########Sistem stres altinda
     if LoadAverage() > 10 :
 	System_Under_Stres=int(System_Under_Stres)+1
-	Log("Mevcut Yuk Sistem Icin Fazla= "+ str(LoadAverage()))
+	Log("Mevcut Yuk Sistem Icin Fazla= "+ str(LoadAverage())+"      gercekleme sayisi "+str(System_Under_Stres))
 	WriteConfig()
 #########Supervisor sayisi fazla
     if LoadAverage() < 5 :
@@ -94,7 +175,8 @@ def Control():
 
 #Gonder="Mevcut yuk="+str(LoadAverage())
 #Log(Gonder)
-ReadConfig()
+#ReadConfig()
 #print Supervisor_Count,Wait_Until
 #print Url_Builder()
 Control()
+AwsMachineCreate()
