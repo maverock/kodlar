@@ -3,7 +3,6 @@
 import argparse
 import subprocess
 import json
-from pprint import pprint
 import requests
 import datetime
 Supervisor_Count=0
@@ -76,11 +75,10 @@ def AwsMachineTerminate():
         with open('/etc/salt/master.d/instanceid.conf', 'w') as file:
     	    file.writelines(instancedata)
         terminatecommand="aws ec2 terminate-instances --region us-east-1 --instance-id "+terminateid
-        print terminatecommand
         forlog=subprocess.check_output(terminatecommand.split())
         with open("/deneme.log", "a") as myfile:
             myfile.write(forlog)
-        Log(str(terminateid)+"  id'li makina sistemden cikarildi")    
+        Log(str(terminateid.strip())+"  id'li makina sistemden cikarildi")    
         WriteConfig()
         ########Yeni supervisor sayilarinin yazilmasi
         #Yeni worker sayilari ve dosyaya yazilmasi
@@ -91,7 +89,6 @@ def AwsMachineTerminate():
         if Supervisor_Count>5 :
             Metric_Worker=6
             Auto_Worker=(Supervisor_Count*4)-Metric_Worker
-        print int(Auto_Worker),int(Metric_Worker)
          ####Analytics 
         with open('/etc/8digits/analytics.properties', 'r') as file:
             data = file.readlines()
@@ -172,7 +169,6 @@ def AwsMachineCreate():
     if Supervisor_Count>5 :
         Metric_Worker=6
         Auto_Worker=(Supervisor_Count*4)-Metric_Worker
-    print int(Auto_Worker),int(Metric_Worker)
          ####Analytics 
     with open('/etc/8digits/analytics.properties', 'r') as file:
         data = file.readlines()
@@ -220,7 +216,7 @@ def Log( s ):
 	myfile.write(newline)
 
 def ReadConfig():
-    with open('/home/admin/birim_kodlar/runtime.conf', 'r') as file:
+    with open('/etc/salt/master.d/runtime.con', 'r') as file:
 	configdata = file.readlines()
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
     Supervisor_Count=configdata[0].split("=")[1].strip()
@@ -231,7 +227,7 @@ def ReadConfig():
 
 def WriteConfig():
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
-    with open('/home/admin/birim_kodlar/runtime.conf', 'w') as file:
+    with open('/etc/salt/master.d/runtime.con', 'w') as file:
         file.write("Supervisor_Count="+str(Supervisor_Count)+"\n" )
 	file.write("System_Under_Stres="+str(System_Under_Stres)+"\n")
 	file.write("Last_Supervisor_Add="+str(Last_Supervisor_Add)+"\n")
@@ -269,4 +265,4 @@ ReadConfig()
 #print Url_Builder()
 Control()
 #AwsMachineTerminate()
-AwsMachineCreate()
+#AwsMachineCreate()
