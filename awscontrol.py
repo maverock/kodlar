@@ -34,7 +34,7 @@ def Url_Builder():
     IpBegin="&target=servers.ip-"
     IpEnd=".loadavg.01"
     Url=""
-    with open('/etc/salt/master.d/instanceid.conf', 'r') as file:
+    with open('/etc/salt/master.d/instanceid.con', 'r') as file:
 	data = file.readlines()
     Url=Url+Init
     for x in range(len(data)):
@@ -50,7 +50,7 @@ def AwsMachineTerminate():
     #data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
 
-    with open('/etc/salt/master.d/groups.conf', 'r') as file:
+    with open('/etc/salt/master.d/groups.con', 'r') as file:
         data = file.readlines()
     
     for x in range(len(data)):
@@ -64,15 +64,15 @@ def AwsMachineTerminate():
     	    ChangedLine=ChangedLine+"\'"+"\n"
     	    data[x]=ChangedLine
 
-    with open("/etc/salt/master.d/instanceid.conf", "r") as file:
+    with open("/etc/salt/master.d/instanceid.con", "r") as file:
         instancedata= file.readlines()
     #d=
     if DeletedIp==instancedata[len(instancedata)-1].split(':')[0]: 
         terminateid=instancedata[len(instancedata)-1].split(':')[1]
         instancedata[len(instancedata)-1]=""
-        with open('/etc/salt/master.d/groups.conf', 'w') as file:
+        with open('/etc/salt/master.d/groups.con', 'w') as file:
         	file.writelines( data )
-        with open('/etc/salt/master.d/instanceid.conf', 'w') as file:
+        with open('/etc/salt/master.d/instanceid.con', 'w') as file:
     	    file.writelines(instancedata)
         terminatecommand="aws ec2 terminate-instances --region us-east-1 --instance-id "+terminateid
         forlog=subprocess.check_output(terminatecommand.split())
@@ -145,7 +145,7 @@ def AwsMachineCreate():
         InstanceId=instance["InstanceId"]
     ############ etc altini oku
 
-    with open('/etc/salt/master.d/groups.conf', 'r') as file:
+    with open('/etc/salt/master.d/groups.con', 'r') as file:
         data = file.readlines()
 
     for x in range(len(data)):
@@ -159,7 +159,7 @@ def AwsMachineCreate():
 	    ChangedLine=ChangedLine+"\'"+"\n"
 	    data[x]=ChangedLine
     #print data
-    with open('/etc/salt/master.d/groups.conf', 'w') as file:
+    with open('/etc/salt/master.d/groups.con', 'w') as file:
         file.writelines( data )
     #Yeni worker sayilari ve dosyaya yazilmasi
     Supervisor_Count=int(Supervisor_Count)+1
@@ -202,7 +202,7 @@ def AwsMachineCreate():
 
  
     #instanceid dosyasinin yazilmasi
-    with open("/etc/salt/master.d/instanceid.conf", "a") as myfile:
+    with open("/etc/salt/master.d/instanceid.con", "a") as myfile:
         newline=IpAdress+":"+InstanceId+"\n"
         myfile.write(newline)
 
@@ -217,13 +217,13 @@ def Log( s ):
 
 def ReadConfig():
     with open('/etc/salt/master.d/runtime.con', 'r') as file:
-	configdata = file.readlines()
+	conigdata = file.readlines()
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
-    Supervisor_Count=configdata[0].split("=")[1].strip()
-    System_Under_Stres=configdata[1].split("=")[1].strip()
-    Last_Supervisor_Add=configdata[2].split("=")[1].strip()
-    Wait_Until=configdata[3].split("=")[1].strip()
-    More_Than_Need=configdata[4].split("=")[1].strip()
+    Supervisor_Count=conigdata[0].split("=")[1].strip()
+    System_Under_Stres=conigdata[1].split("=")[1].strip()
+    Last_Supervisor_Add=conigdata[2].split("=")[1].strip()
+    Wait_Until=conigdata[3].split("=")[1].strip()
+    More_Than_Need=conigdata[4].split("=")[1].strip()
 
 def WriteConfig():
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
