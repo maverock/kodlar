@@ -131,7 +131,8 @@ def AwsMachineCreate():
     InstanceId=""
     #with open('./sonuc.txt') as data_file:    
     #    data = json.load(data_file)
-    data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
+    data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type t2.micro --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
+    #data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
     data = json.loads(data)
     #
     #cl = float(data['Instances']['State']['NetworkInterfaces']['PrivateIpAddresses']['PrivateIpAddress'])
@@ -238,20 +239,39 @@ def WriteConfig():
 def Control():
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
     if Wait_Until>datetime.datetime.now().strftime("%Y-%m-%d %H:%M"):
-	Log("Bekleme suresi etkin")
+	Log("Bekleme suresi "+str(Wait_Until)+" saatine kadar etkin")
 	return
 #########Sistem stres altinda
-    if LoadAverage() > 10 :
+    if LoadAverage() > 8 :
 	System_Under_Stres=int(System_Under_Stres)+1
 	Log("Mevcut Yuk Sistem Icin Fazla= "+ str(LoadAverage())+"      gercekleme sayisi "+str(System_Under_Stres))
+        if Supervisor_Count>8:
+            Log("Mevcut supervisor sayisi max durumda oldugundan islem yapilmayacak")
+            return
+        if System_Under_Stres>15 :
+            Log("Sistem 15 dakikadan uzun suredir stress altinda yeni supervisor ekleniyor")
+            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
+            System_Under_Stres=0
+            More_Than_Need=0
+            AwsMachineCreate()
+            Supervisor_Count=int(Supervisor_Count)+1
 	WriteConfig()
 #########Supervisor sayisi fazla
     if LoadAverage() < 5 :
 	More_Than_Need=int(More_Than_Need)+1
 	Log("Supervisor sayisi suan icin fazla ortalama yuk = "+str(LoadAverage())+"	gerceklesme sayisi "+str(More_Than_Need))
+        if Supervisor_Count<4:
+            Log("Mevcut supervisor sayisi min durumda oldugundan islem yapilmayacak")
+        if More_Than_Need>15:
+            Log("Sistem 15 dakikadir bosta bir supervisor cikartiliyor")
+            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
+            System_Under_Stres=0
+            More_Than_Need=0
+            AwsMachineTerminate()
+            Supervisor_Count=int(Supervisor_Count)-1
 	WriteConfig()
 #########Sistem sorunsuz calisiyor
-    if LoadAverage() > 5 and LoadAverage() < 10 :
+    if LoadAverage() > 5 and LoadAverage() < 8 :
 	System_Under_Stres=0
 	More_Than_Need=0
 	Log("Suan sistem sorunsuz calismakta= "+ str(LoadAverage())+"	tum sayaclar sifirlandi")
