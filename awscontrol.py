@@ -52,7 +52,7 @@ def AwsMachineTerminate():
 
     with open('/etc/salt/master.d/groups.con', 'r') as file:
         data = file.readlines()
-    
+
     for x in range(len(data)):
         SplittedData=data[x].split(',')
         ChangedLine=""
@@ -67,7 +67,7 @@ def AwsMachineTerminate():
     with open("/etc/salt/master.d/instanceid.con", "r") as file:
         instancedata= file.readlines()
     #d=
-    if DeletedIp==instancedata[len(instancedata)-1].split(':')[0]: 
+    if DeletedIp==instancedata[len(instancedata)-1].split(':')[0]:
         terminateid=instancedata[len(instancedata)-1].split(':')[1]
         instancedata[len(instancedata)-1]=""
         with open('/etc/salt/master.d/groups.con', 'w') as file:
@@ -78,7 +78,7 @@ def AwsMachineTerminate():
         forlog=subprocess.check_output(terminatecommand.split())
         with open("/deneme.log", "a") as myfile:
             myfile.write(forlog)
-        Log(str(terminateid.strip())+"  id'li makina sistemden cikarildi")    
+        Log(str(terminateid.strip())+"  id'li makina sistemden cikarildi")
         WriteConfig()
         ########Yeni supervisor sayilarinin yazilmasi
         #Yeni worker sayilari ve dosyaya yazilmasi
@@ -89,7 +89,7 @@ def AwsMachineTerminate():
         if Supervisor_Count>5 :
             Metric_Worker=6
             Auto_Worker=(Supervisor_Count*4)-Metric_Worker
-         ####Analytics 
+         ####Analytics
         with open('/etc/8digits/analytics.properties', 'r') as file:
             data = file.readlines()
         for x in range(len(data)):
@@ -122,14 +122,14 @@ def AwsMachineTerminate():
 
     else:
         print "Bir sorun var"
-    
+
 
 def AwsMachineCreate():
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
     DnsName=""
     IpAdress=""
     InstanceId=""
-    #with open('./sonuc.txt') as data_file:    
+    #with open('./sonuc.txt') as data_file:
     #    data = json.load(data_file)
     data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type t2.micro --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
     #data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
@@ -146,7 +146,7 @@ def AwsMachineCreate():
         InstanceId=instance["InstanceId"]
     ############ etc altini oku
 
-    with open('/etc/salt/master.d/groups.con', 'r') as file:
+    with open('/etc/salt/master.d/groups.conf', 'r') as file:
         data = file.readlines()
 
     for x in range(len(data)):
@@ -170,7 +170,7 @@ def AwsMachineCreate():
     if Supervisor_Count>5 :
         Metric_Worker=6
         Auto_Worker=(Supervisor_Count*4)-Metric_Worker
-         ####Analytics 
+         ####Analytics
     with open('/etc/8digits/analytics.properties', 'r') as file:
         data = file.readlines()
     for x in range(len(data)):
@@ -201,13 +201,13 @@ def AwsMachineCreate():
     with open('/etc/8digits/metrics.properties', 'w') as file:
         file.writelines( data )
 
- 
+
     #instanceid dosyasinin yazilmasi
     with open("/etc/salt/master.d/instanceid.con", "a") as myfile:
         newline=IpAdress+":"+InstanceId+"\n"
         myfile.write(newline)
 
-    Log(str(str(IpAdress)+" adresli "+str(InstanceId)+" makinasi sisteme eklendi")) 
+    Log(str(IpAdress)+" adresli "+str(InstanceId)+" makinasi sisteme eklendi")
     WriteConfig()
 
 
@@ -242,13 +242,15 @@ def Control():
 	Log("Bekleme suresi "+str(Wait_Until)+" saatine kadar etkin")
 	return
 #########Sistem stres altinda
-    if LoadAverage() > 8 :
+    if LoadAverage() > 9 :
 	System_Under_Stres=int(System_Under_Stres)+1
 	Log("Mevcut Yuk Sistem Icin Fazla= "+ str(LoadAverage())+"      gercekleme sayisi "+str(System_Under_Stres))
-        if Supervisor_Count>8:
-            Log("Mevcut supervisor sayisi max durumda oldugundan islem yapilmayacak")
-            return
         if System_Under_Stres>15 :
+            if int(Supervisor_Count)>8:
+                Log("Mevcut supervisor sayisi max durumda oldugundan islem yapilmayacak")
+                Log("supervisor sayisi="+str(Supervisor_Count))
+                WriteConfig()
+                return
             Log("Sistem 15 dakikadan uzun suredir stress altinda yeni supervisor ekleniyor")
             Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
             System_Under_Stres=0
@@ -260,9 +262,12 @@ def Control():
     if LoadAverage() < 5 :
 	More_Than_Need=int(More_Than_Need)+1
 	Log("Supervisor sayisi suan icin fazla ortalama yuk = "+str(LoadAverage())+"	gerceklesme sayisi "+str(More_Than_Need))
-        if Supervisor_Count<4:
-            Log("Mevcut supervisor sayisi min durumda oldugundan islem yapilmayacak")
         if More_Than_Need>15:
+            if int(Supervisor_Count)<4:
+                Log("Mevcut supervisor sayisi min durumda oldugundan islem yapilmayacak")
+                log("supervisor sayisi="+str(Supervisor_Count))
+                WriteConfig()
+                return
             Log("Sistem 15 dakikadir bosta bir supervisor cikartiliyor")
             Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
             System_Under_Stres=0
@@ -271,7 +276,7 @@ def Control():
             Supervisor_Count=int(Supervisor_Count)-1
 	WriteConfig()
 #########Sistem sorunsuz calisiyor
-    if LoadAverage() > 5 and LoadAverage() < 8 :
+    if LoadAverage() > 5 and LoadAverage() < 9 :
 	System_Under_Stres=0
 	More_Than_Need=0
 	Log("Suan sistem sorunsuz calismakta= "+ str(LoadAverage())+"	tum sayaclar sifirlandi")
