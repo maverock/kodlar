@@ -50,7 +50,7 @@ def AwsMachineTerminate():
     #data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
     global Supervisor_Count,System_Under_Stres,Last_Supervisor_Add,Wait_Until,More_Than_Need
 
-    with open('/etc/salt/master.d/groups.con', 'r') as file:
+    with open('/etc/salt/master.d/groups.conf', 'r') as file:
         data = file.readlines()
 
     for x in range(len(data)):
@@ -70,7 +70,7 @@ def AwsMachineTerminate():
     if DeletedIp==instancedata[len(instancedata)-1].split(':')[0]:
         terminateid=instancedata[len(instancedata)-1].split(':')[1]
         instancedata[len(instancedata)-1]=""
-        with open('/etc/salt/master.d/groups.con', 'w') as file:
+        with open('/etc/salt/master.d/groups.conf', 'w') as file:
         	file.writelines( data )
         with open('/etc/salt/master.d/instanceid.con', 'w') as file:
     	    file.writelines(instancedata)
@@ -160,7 +160,7 @@ def AwsMachineCreate():
 	    ChangedLine=ChangedLine+"\'"+"\n"
 	    data[x]=ChangedLine
     #print data
-    with open('/etc/salt/master.d/groups.con', 'w') as file:
+    with open('/etc/salt/master.d/groups.conf', 'w') as file:
         file.writelines( data )
     #Yeni worker sayilari ve dosyaya yazilmasi
     Supervisor_Count=int(Supervisor_Count)+1
@@ -209,6 +209,7 @@ def AwsMachineCreate():
 
     Log(str(IpAdress)+" adresli "+str(InstanceId)+" makinasi sisteme eklendi")
     WriteConfig()
+    SaltKeyAdd(IpAdress,InstanceId)
 
 
 def Log( s ):
@@ -242,7 +243,7 @@ def Control():
 	Log("Bekleme suresi "+str(Wait_Until)+" saatine kadar etkin")
 	return
 #########Sistem stres altinda
-    if LoadAverage() > 9 :
+    if LoadAverage() > 7 :
 	System_Under_Stres=int(System_Under_Stres)+1
 	Log("Mevcut Yuk Sistem Icin Fazla= "+ str(LoadAverage())+"      gercekleme sayisi "+str(System_Under_Stres))
         if System_Under_Stres>15 :
@@ -252,11 +253,10 @@ def Control():
                 WriteConfig()
                 return
             Log("Sistem 15 dakikadan uzun suredir stress altinda yeni supervisor ekleniyor")
-            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
+            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M")
             System_Under_Stres=0
             More_Than_Need=0
             AwsMachineCreate()
-            Supervisor_Count=int(Supervisor_Count)+1
 	WriteConfig()
 #########Supervisor sayisi fazla
     if LoadAverage() < 5 :
@@ -269,18 +269,39 @@ def Control():
                 WriteConfig()
                 return
             Log("Sistem 15 dakikadir bosta bir supervisor cikartiliyor")
-            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
+            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M")
             System_Under_Stres=0
             More_Than_Need=0
             AwsMachineTerminate()
-            Supervisor_Count=int(Supervisor_Count)-1
 	WriteConfig()
 #########Sistem sorunsuz calisiyor
-    if LoadAverage() > 5 and LoadAverage() < 9 :
+    if LoadAverage() > 5 and LoadAverage() < 7 :
 	System_Under_Stres=0
 	More_Than_Need=0
 	Log("Suan sistem sorunsuz calismakta= "+ str(LoadAverage())+"	tum sayaclar sifirlandi")
 	WriteConfig()
+
+def AfterMachinePros():
+    command="sudo salt -N supervisor state.sls 8dconfig prod"
+    forlog=subprocess.check_output(command.split())
+    Log(forlog)
+    command="sudo salt -N supervisor cmd.run 'pkill -9 java; rm -r /storm-*; rm -r /var/log/storm/*'"
+    forlog=subprocess.check_output(command.split())
+    Log(forlog)
+    command="sudo salt -N supervisor supervisord.restart all"
+    forlog=subprocess.check_output(command.split())
+    Log(forlog)
+
+def SaltKeyAdd(GetIP,GetInstance):
+    cmd='sshpass -p "Bir136926" ssh birim@'+GetIp+' "sudo service salt-minion start"'
+    cmd1="sudo salt-key -y -a "+GetInstance
+    cmd2="sudo service salt-master restart"
+    Log(cmd)
+    Log(cmd1)
+
+def SaltKeyDelete(s):
+    print "deneme"
+
 
 
 #Gonder="Mevcut yuk="+str(LoadAverage())
