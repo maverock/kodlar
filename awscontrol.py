@@ -209,7 +209,7 @@ def AwsMachineCreate():
 
     Log(str(IpAdress)+" adresli "+str(InstanceId)+" makinasi sisteme eklendi")
     WriteConfig()
-    SaltKeyAdd(IpAdress,InstanceId)
+    SaltKeyAdd(IpAdress,DnsName)
 
 
 def Log( s ):
@@ -246,14 +246,14 @@ def Control():
     if LoadAverage() > 7 :
 	System_Under_Stres=int(System_Under_Stres)+1
 	Log("Mevcut Yuk Sistem Icin Fazla= "+ str(LoadAverage())+"      gercekleme sayisi "+str(System_Under_Stres))
-        if System_Under_Stres>15 :
+        if System_Under_Stres>4 :
             if int(Supervisor_Count)>8:
                 Log("Mevcut supervisor sayisi max durumda oldugundan islem yapilmayacak")
                 Log("supervisor sayisi="+str(Supervisor_Count))
                 WriteConfig()
                 return
             Log("Sistem 15 dakikadan uzun suredir stress altinda yeni supervisor ekleniyor")
-            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M")
+            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
             System_Under_Stres=0
             More_Than_Need=0
             AwsMachineCreate()
@@ -262,14 +262,14 @@ def Control():
     if LoadAverage() < 5 :
 	More_Than_Need=int(More_Than_Need)+1
 	Log("Supervisor sayisi suan icin fazla ortalama yuk = "+str(LoadAverage())+"	gerceklesme sayisi "+str(More_Than_Need))
-        if More_Than_Need>15:
+        if More_Than_Need>5:
             if int(Supervisor_Count)<4:
                 Log("Mevcut supervisor sayisi min durumda oldugundan islem yapilmayacak")
-                log("supervisor sayisi="+str(Supervisor_Count))
+                Log("supervisor sayisi="+str(Supervisor_Count))
                 WriteConfig()
                 return
             Log("Sistem 15 dakikadir bosta bir supervisor cikartiliyor")
-            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M")
+            Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
             System_Under_Stres=0
             More_Than_Need=0
             AwsMachineTerminate()
@@ -292,9 +292,9 @@ def AfterMachinePros():
     forlog=subprocess.check_output(command.split())
     Log(forlog)
 
-def SaltKeyAdd(GetIP,GetInstance):
+def SaltKeyAdd( GetIp,GetInstance ):
     cmd='sshpass -p "Bir136926" ssh birim@'+GetIp+' "sudo service salt-minion start"'
-    cmd1="sudo salt-key -y -a "+GetInstance
+    cmd1="sudo salt-key -y -a "+GetInstance.split('.')[0]
     cmd2="sudo service salt-master restart"
     Log(cmd)
     Log(cmd1)
