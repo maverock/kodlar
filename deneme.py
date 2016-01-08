@@ -67,6 +67,8 @@ def AwsMachineTerminate():
     with open("/etc/salt/master.d/instanceid.con", "r") as file:
         instancedata= file.readlines()
     #d=
+    DeletedIp=DeletedIp[3:].replace("-",".")
+    #print DeletedIp
     if DeletedIp==instancedata[len(instancedata)-1].split(':')[0]:
         DnsName="ip-"+DeletedIp.replace(".","-")
         terminateid=instancedata[len(instancedata)-1].split(':')[1]
@@ -75,7 +77,7 @@ def AwsMachineTerminate():
         	file.writelines( data )
         with open('/etc/salt/master.d/instanceid.con', 'w') as file:
     	    file.writelines(instancedata)
-        terminatecommand="aws ec2 terminate-instances --region us-east-1 --instance-id "+terminateid
+        terminatecommand="aws ec2 terminate-instances --region eu-west-1 --instance-id "+terminateid
         forlog=subprocess.check_output(terminatecommand.split())
         with open("/deneme.log", "a") as myfile:
             myfile.write(forlog)
@@ -119,7 +121,7 @@ def AwsMachineTerminate():
                 data[x]=ChangedLine
         with open('/etc/8digits/metrics.properties', 'w') as file:
             file.writelines( data )
-        SaltKeyDelete(DeletedIp)
+        #SaltKeyDelete(DeletedIp)
 
 
     else:
@@ -131,7 +133,7 @@ def AwsMachineCreate():
     DnsName=""
     IpAdress=""
     InstanceId=""
-    data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type t2.micro --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
+    data=subprocess.check_output('aws ec2 run-instances --image-id ami-61bb1912 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-dcfc30b8 --subnet-id subnet-cd95c7a8'.split())
     #data=subprocess.check_output('aws ec2 run-instances --image-id ami-0e7d3164 --count 1 --instance-type c3.2xlarge --key-name developer --security-group-ids sg-61111f04 --subnet-id subnet-ffa20088'.split())
     data = json.loads(data)
     ################dosyadan kurulum datasini cek
@@ -152,14 +154,35 @@ def AwsMachineCreate():
 	    for t in range(len(SplittedData)-1):
 	        ChangedLine=ChangedLine+SplittedData[t]+','
 	    ChangedLine=ChangedLine+SplittedData[len(SplittedData)-1].replace("\'","").replace("\n","")
-            ChangedLine=ChangedLine+","+IpAdress
+            ChangedLine=ChangedLine+",ip-"+IpAdress.replace(".","-")
 	    ChangedLine=ChangedLine+"\'"+"\n"
 	    data[x]=ChangedLine
     #print data
     with open('/etc/salt/master.d/groups.conf', 'w') as file:
         file.writelines( data )
     #Yeni worker sayilari ve dosyaya yazilmasi
-    Supervisor_Count=int(Supervisor_Count)+1
+    WorkerCountWriter(Auto_Worker,Metric_Worker,1)
+
+    #instanceid dosyasinin yazilmasi
+    with open("/etc/salt/master.d/instanceid.con", "a") as myfile:
+        newline=IpAdress+":"+InstanceId+"\n"
+        myfile.write(newline)
+
+    Log(str(IpAdress)+" adresli "+str(InstanceId)+" makinasi sisteme eklendi")
+    WriteConfig()
+    try:
+        SaltKeyAdd(IpAdress,DnsName)
+    except :
+        Log("Salt key ilgili sorun oldu")
+        pass
+def WorkerCountWriter(Auto_Worker,Metric_Worker,ProsSwitch):
+    Proc=0
+    global Supervisor_Count
+    if ProsSwitch==1:
+        Proc=1
+    else:
+        Proc=-1
+    Supervisor_Count=int(Supervisor_Count)+Proc
     if Supervisor_Count<6 :
         Metric_Worker=4
         Auto_Worker=(Supervisor_Count*4)-Metric_Worker
@@ -196,17 +219,6 @@ def AwsMachineCreate():
 
     with open('/etc/8digits/metrics.properties', 'w') as file:
         file.writelines( data )
-
-
-    #instanceid dosyasinin yazilmasi
-    with open("/etc/salt/master.d/instanceid.con", "a") as myfile:
-        newline=IpAdress+":"+InstanceId+"\n"
-        myfile.write(newline)
-
-    Log(str(IpAdress)+" adresli "+str(InstanceId)+" makinasi sisteme eklendi")
-    WriteConfig()
-    SaltKeyAdd(IpAdress,DnsName)
-
 
 def Log( s ):
     with open("/var/log/birim/controller.log", "a") as myfile:
@@ -278,15 +290,17 @@ def Control():
 #	WriteConfig()
 #
     saat=datetime.datetime.now().strftime("%H:%M")
-    if saat=="15:11":
+    #if 1==1:
+    if saat=="00:17":
         Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
         AwsMachineTerminate()
-        AwsMachineTerminate()
+        #AwsMachineTerminate()
         AfterMachinePros()
         WriteConfig()
-    if saat=="09:00":
+    if 1==1:
+    #if saat=="09:00":
         Wait_Until=(datetime.datetime.now() + datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M")
-        AwsMachineCreate()
+        #AwsMachineCreate()
         AwsMachineCreate()
         AfterMachinePros()
         WriteConfig()
